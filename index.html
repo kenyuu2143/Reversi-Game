@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reversi Game</title>
+<style>
+body {
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+height: 100vh;
+background-color: #F0F0F0;
+margin: 0;
+}
+#game-board {
+box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+padding: 20px;
+background-color: #FFFFFF;
+}
+canvas {
+display: block;
+margin: 0 auto;
+border: 1px solid black;
+}
+#current-player {
+margin-top: 10px;
+font-size: 18px;
+font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div id="game-board">
+<canvas id="board" width="400" height="400"></canvas>
+<p id="current-player">Current turn: Black</p>
+</div>
+<button id="reset-button">Reset the game
+</button>
+<script>
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const tileSize = 50;
+const boardSize = 8;
+const board = new Array(boardSize).fill(null).map(() => new Array(boardSize).fill(null));
+const currentPlayerElement = document.getElementById('current-player');
+let currentPlayer = 'black';
+initializeBoard();
+function initializeBoard() {
+// Add this loop to reset the board array
+for (let row = 0; row < boardSize; row++) {
+for (let col = 0; col < boardSize; col++) {
+board[row][col] = null;
+}
+}
+board[3][3] = 'white';
+board[4][4] = 'white';
+board[3][4] = 'black';
+board[4][3] = 'black';
+drawBoard();
+}
+function isValidMove(row, col, player) {
+if (board[row][col]) return false;
+const directions = [
+[-1, 0], [1, 0], [0, -1], [0, 1],
+[-1, -1], [1, 1], [-1, 1], [1, -1]
+];
+for (const [dx, dy] of directions) {
+let newRow = row + dx;
+let newCol = col + dy;
+let flipped = false;
+while (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol] === (player === 'black' ? 'white' : 'black')) {
+newRow += dx;
+newCol += dy;
+flipped = true;
+}
+if (flipped && newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol] === player) {
+return true;
+}
+}
+return false;
+}
+function placePiece(row, col, player) {
+if (!isValidMove(row, col, player)) return false;
+board[row][col] = player;
+const directions = [
+[-1, 0], [1, 0], [0, -1], [0, 1],
+[-1, -1], [1, 1], [-1, 1], [1, -1]
+];
+for (const [dx, dy] of directions) {
+let newRow = row + dx;
+let newCol = col + dy;
+let flipped = false;
+while (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol] === (player === 'black' ? 'white' : 'black')) {
+newRow += dx;
+newCol += dy;
+flipped = true;
+}
+if (flipped && newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol] === player) {
+newRow -= dx;
+newCol -= dy;
+while (newRow !== row || newCol !== col) {
+board[newRow][newCol] = player;
+newRow -= dx;
+newCol -= dy;
+}
+}
+}
+return true;
+}
+function hasValidMove(player) {
+for (let row = 0; row < boardSize; row++) {
+for (let col = 0; col < boardSize; col++) {
+if (isValidMove(row, col, player)) return true;
+}
+}
+return false;
+}
+function countPieces() {
+let blackCount = 0;
+let whiteCount = 0;
+for (let row = 0; row < boardSize; row++) {
+for (let col = 0; col < boardSize; col++) {
+if (board[row][col] === 'black') {
+blackCount++;
+} else if (board[row][col] === 'white') {
+whiteCount++;
+}
+}
+}
+return { black: blackCount, white: whiteCount };
+}
+function switchPlayer() {
+currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+currentPlayerElement.textContent = `Current turn: ${currentPlayer === 'black' ? 'black' : 'white'}`;
+if (!hasValidMove(currentPlayer)) {
+currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+currentPlayerElement.textContent = `Current turn: ${currentPlayer === 'black' ? 'black' : 'white'}`;
+if (!hasValidMove(currentPlayer)) {
+const { black, white } = countPieces();
+alert(`Game over! Black: ${black} - white: ${white}`);
+}
+}
+}
+function drawBoard() {
+ctx.fillStyle = '#228B22';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+// Draw grid lines
+ctx.strokeStyle = '#000000';
+for (let i = 1; i < boardSize; i++) {
+ctx.beginPath();
+ctx.moveTo(i * tileSize, 0);
+ctx.lineTo(i * tileSize, canvas.height);
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(0, i * tileSize);
+ctx.lineTo(canvas.width, i * tileSize);
+ctx.stroke();
+}
+for (let row = 0; row < boardSize; row++) {
+for (let col = 0; col < boardSize; col++) {
+if (board[row][col]) {
+ctx.fillStyle = board[row][col] === 'black' ? '#000000' : '#FFFFFF';
+ctx.beginPath();
+ctx.arc(col * tileSize + tileSize / 2, row * tileSize + tileSize / 2, tileSize / 2 - 5, 0, Math.PI * 2);
+ctx.fill();
+} else if (isValidMove(row, col, currentPlayer)) {
+ctx.fillStyle = currentPlayer === 'black' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)';
+ctx.beginPath();
+ctx.arc(col * tileSize + tileSize / 2, row * tileSize + tileSize / 2, tileSize / 2 - 5, 0, Math.PI * 2);
+ctx.fill();
+} else if (isValidMove(row, col, currentPlayer === 'black' ? 'white' : 'black')) {
+ctx.fillStyle = currentPlayer === 'black' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)';
+ctx.beginPath();
+ctx.arc(col * tileSize + tileSize / 2, row * tileSize + tileSize / 2, tileSize / 2 - 5, 0, Math.PI * 2);
+ctx.fill();
+}
+}
+}
+}
+document.getElementById('reset-button').addEventListener('click', () => {
+initializeBoard();
+currentPlayer = 'black';
+currentPlayerElement.textContent = `Current turn: Black`;
+});
+canvas.addEventListener('click', (e) => {
+const col = Math.floor(e.offsetX / tileSize);
+const row = Math.floor(e.offsetY / tileSize);
+if (placePiece(row, col, currentPlayer)) {
+drawBoard();
+switchPlayer();
+}
+});
+drawBoard();
+</script>
+</body>
+</html>
